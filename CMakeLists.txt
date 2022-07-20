@@ -12,8 +12,9 @@ project(CompareFace)
 
 hunter_add_package(CURL)
 hunter_add_package(nlohmann_json)
-find_package(CURL CONFIG REQUIRED)
+
 find_package(Threads)
+find_package(CURL CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
 add_library(${PROJECT_NAME} STATIC

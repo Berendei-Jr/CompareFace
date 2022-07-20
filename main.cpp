@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
@@ -14,7 +15,7 @@ int main(int argc, char* argv[])
 {
     if (argc != 3 || std::string(argv[1]) == "--help") {
         std::cerr << "Usage: ./compare_face <path_to_the_"
-                                    "first_photo> <path_to_the_second_photo>";
+                     "first_photo> <path_to_the_second_photo>";
         return 0;
     }
 
@@ -52,16 +53,30 @@ int main(int argc, char* argv[])
 
         res = curl_easy_perform(curl);
 
-        if(res != CURLE_OK)
-            fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                    curl_easy_strerror(res));
-
         curl_easy_cleanup(curl);
         curl_formfree(formpost);
         curl_slist_free_all(list);
+
+        if(res != CURLE_OK) {
+            fprintf(stderr, "Sending request failed: %s",
+                    curl_easy_strerror(res));
+            exit(EXIT_FAILURE);
+        }
     }
 
     auto j = json::parse(body);
-    std::cout << j.at("result")[0].at("face_matches")[0].at("similarity").dump();
+
+    if (j.contains("message")) {
+        std::cout << "Error occurred: " << j.at("message").dump()
+                  << "\nCode: " << j.at("code").dump() << std::endl;
+        return 1;
+    }
+
+    std::vector<double> similarities;
+    for (auto& i: j.at("result")[0].at("face_matches")) {
+        similarities.push_back(i.at("similarity"));
+    }
+
+    std::cout << *std::max_element(similarities.begin(), similarities.end());
     return 0;
 }
