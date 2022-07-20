@@ -1,0 +1,11 @@
+name: Test Build
+on: [push]
+jobs:
+  Test_1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: sudo apt update -y
+      - run: cmake . && make && ./compare_face --help
+      - run: echo "This job's status is ${{ job.status }}."
