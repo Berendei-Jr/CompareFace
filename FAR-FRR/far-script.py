@@ -1,8 +1,10 @@
 import subprocess
 import os
-from threading import Thread
+import concurrent.futures
 from pathlib import Path
 from collections import deque
+from datetime import datetime
+import threading
 
 def objectsInFolder(path):
     return len(list(Path(path).iterdir()))
@@ -14,11 +16,13 @@ def isValid(file, validFaces):
     return False        
 
 facesRoot = "/home/hellcat/workspace/lfw"
-validFacesNum = 6
+validFacesNum = 12
+candidatesNum = 1
 threadsNum = 6
 peopleNum = len(list(Path(facesRoot).iterdir()))
 
-#Заполнение массива "валидных" лиц
+print(f'Looking for {validFacesNum} valid faces...')      
+# Заполнение массива "валидных" лиц
 validFaces = deque()
 i = 0
 for root, dirs, files in os.walk(facesRoot):
@@ -31,28 +35,49 @@ for root, dirs, files in os.walk(facesRoot):
             if (i == validFacesNum):
                 break
 
-#Потоковая функция. Получает на вход массив "валидных" лиц, которые ей нужно будет обработать и массив всех остальных лиц в базе
-def threadFunc(i, validFaces_db, faces_db):
-    print("Got faces:", len(validFaces_db))
+# Потоковая функция. Получает на вход массив "валидных" лиц, которые ей нужно будет обработать и массив всех остальных лиц в базе
+def threadFunc(validFaces_db, faces_db):
+    facesNum = len(validFaces_db)
+    print("Got faces:", facesNum)
+
+    results = []
+    fileStream = open(f'{threading.current_thread().name}.txt', 'w')
 
     counter = 0
     for face in validFaces_db:
+        if (counter%10 == 0):
+            print(threading.current_thread().name, ': ', counter)
+
+        candidatesCounter = 0
         for root, dirs, files in os.walk(faces_db):
             for name in files:
-                counter += 1
+                if (candidatesCounter >= candidatesNum):
+                    break
                 if (isValid(os.path.join(root, name), validFaces) == False):
                     result = subprocess.run(['/home/hellcat/CLionProjects/CompareFace/cmake-build-debug/compare_face',
                     face, os.path.join(root, name)],
                     stdout=subprocess.PIPE, encoding='utf-8')
-                    if (counter % 10 == 0):
-                        print('thread', i, ') ', counter, ' ', counter/(peopleNum*len(validFaces_db)) * 100, '%')
-                    
-                    
-#Подготовка массива лиц для каждого потока и запуск потоков
-for i in range (threadsNum):
-    threadFacesPool = []
-    for it in range(validFacesNum):
-        if (it%threadsNum == i):
-            threadFacesPool.append(validFaces[it])
-    th = Thread(target=threadFunc, args=(i, threadFacesPool, facesRoot))
-    th.start()
+                    results.append(result.stdout)
+                    candidatesCounter += 1
+   #                 print(threading.current_thread().name, ': ', counter)
+        counter += 1
+
+    for i in results:
+        fileStream.write(i + '\n')
+    fileStream.close()     
+
+start_time = datetime.now()
+# Подготовка массива лиц для каждого потока и запуск потоков
+with concurrent.futures.ThreadPoolExecutor(max_workers=threadsNum) as executor:
+    futures = []
+    for i in range (threadsNum):
+        threadFacesPool = []
+        for it in range(validFacesNum):
+            if (it % threadsNum == i):
+                threadFacesPool.append(validFaces[it])
+        futures.append(executor.submit(threadFunc, threadFacesPool, facesRoot))  
+    print("Started...")              
+    for future in concurrent.futures.as_completed(futures):
+        continue
+
+print(datetime.now() - start_time)
