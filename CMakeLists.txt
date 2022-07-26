@@ -25,9 +25,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         "$<INSTALL_INTERFACE:include>"
 )
 
-add_executable(compare_face main.cpp)
+add_executable(compare_face compareFace.cpp)
+add_executable(detect_face detectFaces.cpp)
 
 target_link_libraries(compare_face ${PROJECT_NAME}
+        CURL::libcurl
+        nlohmann_json::nlohmann_json
+)
+
+target_link_libraries(detect_face ${PROJECT_NAME}
         CURL::libcurl
         nlohmann_json::nlohmann_json
 )
