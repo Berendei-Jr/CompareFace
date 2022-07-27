@@ -3,7 +3,7 @@ import os
 import concurrent.futures
 from pathlib import Path
 from collections import deque
-from datetime import datetime
+#from datetime import datetime
 import threading
 
 def objectsInFolder(path):
@@ -16,8 +16,8 @@ def isValid(file, validFaces):
     return False        
 
 facesRoot = "/home/hellcat/workspace/lfw"
-validFacesNum = 12
-candidatesNum = 1
+validFacesNum = 200
+candidatesNum = 1000
 threadsNum = 6
 peopleNum = len(list(Path(facesRoot).iterdir()))
 
@@ -38,15 +38,16 @@ for root, dirs, files in os.walk(facesRoot):
 # Потоковая функция. Получает на вход массив "валидных" лиц, которые ей нужно будет обработать и массив всех остальных лиц в базе
 def threadFunc(validFaces_db, faces_db):
     facesNum = len(validFaces_db)
-    print("Got faces:", facesNum)
+    #print("Got faces:", facesNum)
 
     results = []
     fileStream = open(f'{threading.current_thread().name}.txt', 'w')
 
     counter = 0
     for face in validFaces_db:
-        if (counter%10 == 0):
-            print(threading.current_thread().name, ': ', counter)
+        if (counter%3):
+            if (threading.current_thread().name == "ThreadPoolExecutor-0_1"):
+                print(f'{counter/facesNum * 100}%')
 
         candidatesCounter = 0
         for root, dirs, files in os.walk(faces_db):
@@ -59,14 +60,14 @@ def threadFunc(validFaces_db, faces_db):
                     stdout=subprocess.PIPE, encoding='utf-8')
                     results.append(result.stdout)
                     candidatesCounter += 1
-   #                 print(threading.current_thread().name, ': ', counter)
+                    #print(threading.current_thread().name, ': ', counter)
         counter += 1
 
     for i in results:
         fileStream.write(i + '\n')
     fileStream.close()     
 
-start_time = datetime.now()
+#start_time = datetime.now()
 # Подготовка массива лиц для каждого потока и запуск потоков
 with concurrent.futures.ThreadPoolExecutor(max_workers=threadsNum) as executor:
     futures = []
@@ -80,4 +81,4 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=threadsNum) as executor:
     for future in concurrent.futures.as_completed(futures):
         continue
 
-print(datetime.now() - start_time)
+#print(datetime.now() - start_time)
