@@ -1,0 +1,10 @@
+#!/bin/bash
+
+mkdir faces_db && cd faces_db
+wget http://vis-www.cs.umass.edu/lfw/lfw.tgz
+tar -zxvf lfw.tgz
+rm lfw.tgz
+cd ..
+cmake -B _build && cd _build && make
+
+echo "Everything done! Now you can run python scripts"
