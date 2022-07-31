@@ -1,4 +1,3 @@
-REMOVE IT
 name: Test Build
 on: [push]
 jobs:
