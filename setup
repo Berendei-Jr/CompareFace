@@ -1,10 +1,14 @@
 #!/bin/bash
 
+echo -e "Getting things ready...\n"
+if !(ls faces_db &> /dev/null)
+then
 mkdir faces_db && cd faces_db
 wget http://vis-www.cs.umass.edu/lfw/lfw.tgz
-tar -zxvf lfw.tgz
+tar -zxvf lfw.tgz &> /dev/null
 rm lfw.tgz
 cd ..
-cmake -B _build && cd _build && make
-
-echo "Everything done! Now you can run python scripts"
+fi
+cmake -DCMAKE_BUILD_TYPE=Release -B _build && cd _build && make
+pip install matplotlib
+echo -e "\nEverything done! Now you can run python scripts\n"
